@@ -35,6 +35,7 @@ class Game :
         self.background = pygame.transform.scale(self.background, (self.WIDTH, self.HEIGHT))
         self.background_rect = self.background.get_rect()
         self.baloon_color = ["black", "blue", "red", "green"]
+        self.time_restricted_mode = False
 
         self.all_sprites = None
         self.baloons = None
@@ -91,6 +92,9 @@ class Game :
             pygame.display.flip()
             self.clock.tick(FPS)
 
+    def time_restricted(self):
+        self.time_restricted_mode = True
+        self.gameloop()
 
     def replay(self):
         if self.score == self.highscore:
@@ -119,6 +123,11 @@ class Game :
         self.highscore = 0
         self.score = 0
         self.last_arrow_time = 0
+
+        # Only for time restricted mode
+        if self.time_restricted_mode == True:
+            self.remaining_time = GAME_TIME # Remaining time
+            self.dt = 0
 
         self.all_sprites = None
         self.baloons = None
@@ -152,10 +161,18 @@ class Game :
 #         self.instruction_screen()
         while running:
 
-            self.clock.tick(FPS)
+            self.dt = self.clock.tick(FPS)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+
+            # Only for time restricted mode
+            if self.time_restricted_mode == True:
+                if self.remaining_time <= 0:
+                    self.time_restricted_mode = False
+                    running = False
+                self.remaining_time -= self.dt / 1000
+                
 
             now = pygame.time.get_ticks()
             if self.last_arrow.Released and now-self.last_arrow_time > 1000:
@@ -205,7 +222,15 @@ class Game :
         self.draw.draw_text("SCORE : %d" % (self.score), self.WIDTH-200, self.HEIGHT-100, 40, BLUE)
         self.draw.draw_text("HIGH SCORE : %d" % (self.highscore),
                 self.WIDTH-200, self.HEIGHT-50, 40, BLUE)
-   
+
+        # Only for time restricted mode
+        if self.time_restricted_mode == True:
+            if self.remaining_time < 10:
+                timer_color = RED
+            else:
+                timer_color = BLACK
+            self.draw.draw_text("TIME LEFT : %d" % (self.remaining_time),
+                self.WIDTH/2, 40, 40, timer_color)
    #screen when instruction button is clicked
     def instruction_screen(self):
         self.instruction = True
